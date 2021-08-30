@@ -1,0 +1,133 @@
+version: "3"
+
+networks:
+  backend:
+  
+volumes:
+  redis-6:
+  mysql-8:
+
+services:
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin
+    environment:
+      - PMA_HOST=mysql
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=secret
+    ports:
+      - "8000:80"
+    restart: unless-stopped
+    depends_on: 
+      - mysql
+    networks:
+      - backend
+
+  # mysql:
+  #   image: mysql:5.7.29
+  #   container_name: mysql
+  #   restart: always
+  #   ports:
+  #     - "3306:3306"
+  #   volumes:
+  #     - ./mysql:/var/lib/mysql
+  #   environment:
+  #     MYSQL_DATABASE: homestead
+  #     MYSQL_USER: homestead
+  #     MYSQL_PASSWORD: secret
+  #     MYSQL_ROOT_PASSWORD: secret
+  #     SERVICE_TAGS: dev
+  #     SERVICE_NAME: mysql
+  #   networks:
+  #     - backend
+
+  mysql:
+    container_name: mysql
+    restart: unless-stopped
+    build:
+      context: ./mysql-8-conf
+    image: "jhonoryza/mysql:8.0.26"
+    environment:
+      - MYSQL_DATABASE=testing
+      - MYSQL_USER=vmtwo
+      - MYSQL_PASSWORD=secret
+      - MYSQL_ROOT_PASSWORD=secret
+    volumes:
+      - mysql-8:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - backend
+
+  redis:
+    image: redis:6
+    container_name: redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-6:/var/lib/redis
+    networks:
+      - backend
+
+  nginx:
+    image: jhonoryza/nginx:laravel-alpine
+    container_name: nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/log:/var/log/nginx
+      - ./nginx/conf/:/etc/nginx/conf.d/:cached
+      - ./nginx/sample/index.html:/var/www/html/index.html:cached
+      - /home/labkita/www:/var/www:delegated
+    networks:
+      - backend
+
+  php74:
+    image: jhonoryza/php:ubuntu-7.4-composer-2
+    container_name: php74
+    restart: unless-stopped
+    working_dir: /var/www
+    user: laravel
+    extra_hosts:
+      - "mansek.test:172.18.0.4"
+      - "tracey.test:172.18.0.4"
+      - "duniapp.test:172.18.0.4"
+    volumes:
+      - /home/labkita/www:/var/www:delegated
+      - /home/labkita/.composer/docker-cache/:/home/laravel/.composer:cached
+    networks:
+      - backend
+
+  horizon74:
+    image: jhonoryza/php:horizon-7.4
+    container_name: horizon74
+    restart: unless-stopped
+    working_dir: /var/www
+    user: laravel
+    extra_hosts:
+      - "mansek.test:172.18.0.4"
+      - "tracey.test:172.18.0.4"
+      - "duniapp.test:172.18.0.4"
+    volumes:
+      - /home/labkita/www:/var/www:delegated
+      - ./horizon/conf:/etc/supervisord.d
+      - /home/labkita/.composer/docker-cache/:/home/laravel/.composer:cached
+    networks:
+      - backend
+
+  php80:
+    image: jhonoryza/php:ubuntu-8.0-composer-2
+    container_name: php80
+    restart: unless-stopped
+    working_dir: /var/www
+    user: laravel
+    volumes:
+      - /home/labkita/www:/var/www:delegated
+      - /home/labkita/.composer/docker-cache/:/home/laravel/.composer:cached
+    networks:
+      - backend
+
